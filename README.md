@@ -1,22 +1,22 @@
-# 📦 QueuePublisher
+# QueuePublisher
 
 **QueuePublisher** es una librería en **.NET 8** que proporciona una interfaz unificada para trabajar con diferentes **brokers de mensajería** como **AWS SQS** y **RabbitMQ**.  
 El objetivo es simplificar el envío y consumo de mensajes sin acoplar tu aplicación a un proveedor específico.
 
 ---
 
-## ✨ Características
+## Características
 
-- ✅ Interfaz común `IQueueProducer` y `IQueueConsumer` para todos los brokers.  
-- ✅ Implementación para **AWS SQS**.  
-- ✅ Implementación para **RabbitMQ** (compatible con CloudAMQP y servidores locales).  
-- ✅ Mensajes persistentes.  
-- ✅ Configuración flexible vía `appsettings.json`.  
-- ✅ Ejemplo de uso con `Program.cs` para pruebas rápidas.
+- Interfaz común `IQueueProducer` y `IQueueConsumer` para todos los brokers.  
+- Implementación para **AWS SQS**.  
+- Implementación para **RabbitMQ** (compatible con CloudAMQP y servidores locales).  
+- Mensajes persistentes.  
+- Configuración flexible vía `appsettings.json`.  
+- Ejemplo de uso con `Program.cs` para pruebas rápidas.
 
 ---
 
-## 📂 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 QueuePublisher/
@@ -34,16 +34,13 @@ QueuePublisher/
 │   ├── RabbitMQMessage.cs      # Representación de un mensaje recibido
 │   ├── RabbitMQSettings.cs     # Configuración de RabbitMQ
 │
-│── Configuration/
-│   ├── QueueSettings.cs        # Configuración unificada para colas
-│
 │── Program.cs (ejemplo de prueba rápida)
 │── QueuePublisher.csproj
 ```
 
 ---
 
-## ⚙️ Instalación
+## Instalación
 
 Agrega las dependencias necesarias en tu proyecto:
 
@@ -57,7 +54,7 @@ Agrega las dependencias necesarias en tu proyecto:
 
 ---
 
-## 🔧 Configuración
+## Configuración
 
 Ejemplo de `appsettings.json`:
 
@@ -82,7 +79,7 @@ Ejemplo de `appsettings.json`:
 
 ---
 
-## 🚀 Ejemplo de Uso
+## Ejemplo de Uso
 
 ```csharp
 using Amazon.SQS;
@@ -153,7 +150,7 @@ class Program
 
 ---
 
-## 📖 Interfaces
+## Interfaces
 
 ### Producer
 ```csharp
@@ -173,7 +170,7 @@ public interface IQueueConsumer
 
 ---
 
-## 🐇 RabbitMQ Ejemplo con CloudAMQP
+## RabbitMQ Ejemplo con CloudAMQP
 
 ```csharp
 var factory = new ConnectionFactory
@@ -190,7 +187,7 @@ await producer.SendMessageAsync("Mensaje de prueba 🚀");
 
 ---
 
-## ☁️ AWS SQS Ejemplo
+## AWS SQS Ejemplo
 
 ```csharp
 var sqsClient = new AmazonSQSClient(Amazon.RegionEndpoint.USEast1);
@@ -205,7 +202,7 @@ await sqsService.ReceiveMessagesAsync(async message =>
 
 ---
 
-## 📌 Roadmap
+## Roadmap
 
 - [ ] Soporte para **Azure Service Bus**  
 - [ ] Manejo avanzado de **Dead Letter Queues (DLQ)**  
@@ -216,4 +213,4 @@ await sqsService.ReceiveMessagesAsync(async message =>
 
 ## 📝 Licencia
 
-MIT License © 2025 - Desarrollado por **Nebulax Labs**
+MIT License © 2025 - Desarrollado por **Jhoan Hurtado**
