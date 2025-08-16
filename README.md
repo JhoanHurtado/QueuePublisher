@@ -34,6 +34,9 @@ QueuePublisher/
 │   ├── RabbitMQMessage.cs      # Representación de un mensaje recibido
 │   ├── RabbitMQSettings.cs     # Configuración de RabbitMQ
 │
+│── Configuration/
+│   ├── QueueSettings.cs        # Configuración unificada para colas
+│
 │── Program.cs (ejemplo de prueba rápida)
 │── QueuePublisher.csproj
 ```

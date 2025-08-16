@@ -11,7 +11,7 @@ using System;
 using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("Jhoan Hurtado")]
-[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("Librería en .NET 8 para publicar y consumir mensajes en AWS SQS y RabbitMQ median" +
     "te interfaces unificadas (IQueueProducer, IQueueConsumer)."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.1.0")]
