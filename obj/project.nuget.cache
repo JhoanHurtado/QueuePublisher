@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "m5VPOmBbnqk=",
+  "success": true,
+  "projectFilePath": "/Volumes/Content/Proyects/dotNet/QueuePublisher/QueuePublisher.csproj",
+  "expectedPackageFiles": [
+    "/Users/jhoanhurtado/.nuget/packages/awssdk.core/4.0.0.22/awssdk.core.4.0.0.22.nupkg.sha512",
+    "/Users/jhoanhurtado/.nuget/packages/awssdk.sqs/4.0.0.20/awssdk.sqs.4.0.0.20.nupkg.sha512",
+    "/Users/jhoanhurtado/.nuget/packages/rabbitmq.client/7.1.2/rabbitmq.client.7.1.2.nupkg.sha512",
+    "/Users/jhoanhurtado/.nuget/packages/system.io.pipelines/8.0.0/system.io.pipelines.8.0.0.nupkg.sha512",
+    "/Users/jhoanhurtado/.nuget/packages/system.threading.ratelimiting/8.0.0/system.threading.ratelimiting.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
