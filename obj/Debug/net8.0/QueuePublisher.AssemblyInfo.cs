@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("Librería en .NET 8 para publicar y consumir mensajes en AWS SQS y RabbitMQ median" +
     "te interfaces unificadas (IQueueProducer, IQueueConsumer)."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.1+6ba325b3872add9b7af4090fce1d85ff6418705d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.1+e09eb09169321b9d5dc4327f66dfeafc7807c71d")]
 [assembly: System.Reflection.AssemblyProductAttribute("QueuePublisher")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QueuePublisher")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.1.0")]

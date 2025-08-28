@@ -5,32 +5,9 @@ using QueuePublisher.Interfaces;
 namespace QueuePublisher.SQS
 {
     /// <summary>
-    /// Implementación de <see cref="IQueueProducer"/> y <see cref="IQueueConsumer"/> 
-    /// que utiliza Amazon Simple Queue Service (SQS) como backend de mensajería.
+    /// Servicio para enviar y recibir mensajes desde una cola Amazon SQS.
+    /// Implementa <see cref="IQueueProducer"/> y <see cref="IQueueConsumer"/>.
     /// </summary>
-    /// <remarks>
-    /// Esta clase permite enviar y recibir mensajes de una cola SQS.
-    /// 
-    /// - El nombre de la cola (<see cref="_queueName"/>) se pasa en el constructor.
-    /// - Se utiliza <see cref="IAmazonSQS"/> para interactuar con AWS SQS.
-    /// - Al recibir mensajes, los elimina de la cola una vez procesados.
-    /// 
-    /// Ejemplo de uso:
-    /// <code>
-    /// var sqsClient = new AmazonSQSClient();
-    /// var sqsService = new AwsSqsService(sqsClient, "mi-cola");
-    ///
-    /// // Enviar un mensaje
-    /// await sqsService.SendMessageAsync("Hola desde SQS");
-    ///
-    /// // Recibir y procesar mensajes
-    /// await sqsService.ReceiveMessagesAsync(async msg =>
-    /// {
-    ///     Console.WriteLine($"Mensaje recibido: {msg}");
-    ///     await Task.CompletedTask;
-    /// });
-    /// </code>
-    /// </remarks>
     public class AwsSqsService : IQueueConsumer, IQueueProducer
     {
         private readonly IAmazonSQS _sqsClient;
@@ -39,12 +16,13 @@ namespace QueuePublisher.SQS
         /// <summary>
         /// Inicializa una nueva instancia de <see cref="AwsSqsService"/>.
         /// </summary>
-        /// <param name="sqsClient">Cliente de Amazon SQS para realizar las operaciones.</param>
-        /// <param name="queueName">Nombre de la cola SQS a utilizar.</param>
+        /// <param name="sqsClient">Cliente de Amazon SQS.</param>
+        /// <param name="queueName">Nombre de la cola.</param>
         public AwsSqsService(IAmazonSQS sqsClient, string queueName)
         {
             _sqsClient = sqsClient;
             _queueName = queueName;
+            Console.WriteLine($"[AwsSqsService] Inicializado para la cola: {_queueName}");
         }
 
         /// <summary>
@@ -61,39 +39,51 @@ namespace QueuePublisher.SQS
                 MessageBody = message
             };
 
-            await _sqsClient.SendMessageAsync(sendRequest);
+            var response = await _sqsClient.SendMessageAsync(sendRequest);
+            Console.WriteLine($"[AwsSqsService] Mensaje enviado a {_queueName}, MessageId={response.MessageId}");
         }
 
         /// <summary>
-        /// Recibe mensajes de la cola SQS configurada y ejecuta un manejador para cada mensaje.
+        /// Recibe mensajes en un bucle persistente desde la cola SQS y ejecuta el manejador.
         /// </summary>
-        /// <param name="handleMessage">
-        /// Función asíncrona que define cómo procesar el contenido del mensaje.
-        /// </param>
-        /// <remarks>
-        /// Los mensajes se eliminan automáticamente de la cola una vez procesados exitosamente.
-        /// </remarks>
-        public async Task ReceiveMessagesAsync(Func<string, Task> handleMessage)
+        /// <param name="handleMessage">Función async encargada de procesar el mensaje.</param>
+        /// <param name="stoppingToken">Token de cancelación para detener el loop.</param>
+        public async Task ReceiveMessagesAsync(Func<string, Task> handleMessage, CancellationToken stoppingToken)
         {
             var queueUrl = (await _sqsClient.GetQueueUrlAsync(_queueName)).QueueUrl;
 
-            var response = await _sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
-            {
-                QueueUrl = queueUrl,
-                MaxNumberOfMessages = 10,
-                WaitTimeSeconds = 10
-            });
+            Console.WriteLine($"[SQS] Escuchando cola {_queueName}...");
 
-            foreach (var msg in response.Messages)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await handleMessage(msg.Body);
-
-                await _sqsClient.DeleteMessageAsync(new DeleteMessageRequest
+                var response = await _sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
                 {
                     QueueUrl = queueUrl,
-                    ReceiptHandle = msg.ReceiptHandle
-                });
+                    MaxNumberOfMessages = 10,
+                    WaitTimeSeconds = 10 // long polling
+                }, stoppingToken);
+
+                foreach (var msg in response.Messages)
+                {
+                    try
+                    {
+                        Console.WriteLine($"[SQS] Mensaje recibido: {msg.Body}");
+
+                        await handleMessage(msg.Body);
+
+                        await _sqsClient.DeleteMessageAsync(new DeleteMessageRequest
+                        {
+                            QueueUrl = queueUrl,
+                            ReceiptHandle = msg.ReceiptHandle
+                        }, stoppingToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[SQS] Error procesando mensaje: {ex.Message}");
+                    }
+                }
             }
         }
+
     }
 }

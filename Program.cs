@@ -31,11 +31,11 @@ namespace QueuePublisher
 
             // Recibir mensajes
             Console.WriteLine("📥 Recibiendo mensajes de SQS...");
-            await sqsService.ReceiveMessagesAsync(async message =>
+            /*await sqsService.ReceiveMessagesAsync(async message =>
             {
                 Console.WriteLine($"➡️ SQS: {message}");
                 await Task.CompletedTask;
-            });
+            });*/
         }
 
         private static async Task TestRabbitMq()
@@ -63,11 +63,11 @@ namespace QueuePublisher
 
             // Consumir mensajes
             Console.WriteLine("📥 Escuchando mensajes de RabbitMQ...");
-            await consumer.ReceiveMessagesAsync(async message =>
+            /*await consumer.ReceiveMessagesAsync(async message =>
             {
                 Console.WriteLine($"➡️ RabbitMQ: {message}");
                 await Task.CompletedTask;
-            });
+            });*/
 
             Console.WriteLine("🔄 RabbitMQ consumer activo (presiona Ctrl+C para detener)...");
             await Task.Delay(-1); // Mantener app viva

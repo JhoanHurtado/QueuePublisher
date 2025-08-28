@@ -16,6 +16,6 @@ namespace QueuePublisher.Interfaces
         /// <returns>
         /// Una tarea que representa la operación de consumo de mensajes.
         /// </returns>
-        Task ReceiveMessagesAsync(Func<string, Task> handleMessage);
+        Task ReceiveMessagesAsync(Func<string, Task> handleMessage, CancellationToken stoppingToken);
     }
 }

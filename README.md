@@ -1,20 +1,24 @@
+Aquí tienes el archivo `README.md` completo y listo para copiar y pegar. He consolidado toda la información, incluyendo los ajustes y configuraciones adicionales que te he proporcionado, para que tengas un documento exhaustivo y claro.
+
+-----
+
 # QueuePublisher
 
-**QueuePublisher** es una librería en **.NET 8** que proporciona una interfaz unificada para trabajar con diferentes **brokers de mensajería** como **AWS SQS** y **RabbitMQ**.  
-El objetivo es simplificar el envío y consumo de mensajes sin acoplar tu aplicación a un proveedor específico.
+**QueuePublisher** es una librería en **.NET 8** que proporciona una interfaz unificada para trabajar con diferentes **brokers de mensajería** como **AWS SQS** y **RabbitMQ**. El objetivo es simplificar el envío y consumo de mensajes sin acoplar tu aplicación a un proveedor específico.
 
----
+-----
 
 ## Características
 
-- Interfaz común `IQueueProducer` y `IQueueConsumer` para todos los brokers.  
-- Implementación para **AWS SQS**.  
-- Implementación para **RabbitMQ** (compatible con CloudAMQP y servidores locales).  
-- Mensajes persistentes.  
-- Configuración flexible vía `appsettings.json`.  
-- Ejemplo de uso con `Program.cs` para pruebas rápidas.
+  * Interfaz común `IQueueProducer` y `IQueueConsumer` para todos los brokers.
+  * Implementación para **AWS SQS**.
+  * Implementación para **RabbitMQ** (compatible con CloudAMQP y servidores locales).
+  * Mensajes persistentes.
+  * Configuración flexible vía `appsettings.json`.
+  * Uso de **`IHostedService`** para consumo de mensajes en segundo plano, ideal para servicios de larga duración.
+  * Soporte para **`long polling`** en SQS, optimizando el consumo y reduciendo costos.
 
----
+-----
 
 ## Estructura del Proyecto
 
@@ -32,16 +36,15 @@ QueuePublisher/
 │   ├── RabbitMQProducer.cs     # Implementación de RabbitMQ Producer
 │   ├── RabbitMQConsumer.cs     # Implementación de RabbitMQ Consumer
 │   ├── RabbitMQMessage.cs      # Representación de un mensaje recibido
-│   ├── RabbitMQSettings.cs     # Configuración de RabbitMQ
 │
 │── Configuration/
 │   ├── QueueSettings.cs        # Configuración unificada para colas
 │
-│── Program.cs (ejemplo de prueba rápida)
+│── Program.cs                  # Ejemplo de configuración de un Worker Service
 │── QueuePublisher.csproj
 ```
 
----
+-----
 
 ## Instalación
 
@@ -52,110 +55,192 @@ Agrega las dependencias necesarias en tu proyecto:
   <PackageReference Include="AWSSDK.Core" Version="4.0.0.22" />
   <PackageReference Include="AWSSDK.SQS" Version="4.0.0.20" />
   <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+  <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
 </ItemGroup>
 ```
 
----
+-----
 
 ## Configuración
 
-Ejemplo de `appsettings.json`:
+### 1\. Configuración Unificada en `appsettings.json`
+
+Usa la clase `QueueSettings` para mapear los valores de configuración de ambos brokers. Esto te permite gestionar toda la configuración desde un solo lugar.
 
 ```json
 {
   "AWS": {
     "Region": "us-east-1",
-    "Profile": "default",
-    "AccessKey": "your-access-key",
-    "SecretKey": "your-secret-key"
+    "Profile": "default"
   },
-  "SQSQueueName": "notification-queue-dev",
-  "RabbitMQ": {
-    "HostName": "leopard-01.lmq.cloudamqp.com",
-    "UserName": "your-username",
-    "Password": "your-password",
-    "VirtualHost": "your-vhost",
-    "QueueName": "mi-cola-rabbit"
+  "QueueSettings": {
+    "SqsQueueName": "notification-queue-dev",
+    "RabbitMqHost": "leopard-01.lmq.cloudamqp.com",
+    "RabbitMqUser": "your-username",
+    "RabbitMqPassword": "your-password",
+    "RabbitMqVirtualHost": "your-vhost",
+    "RabbitMqQueueName": "mi-cola-rabbit"
   }
 }
 ```
 
----
+### 2\. Configuraciones Alternas
 
-## Ejemplo de Uso
+#### Para Desarrollo Local 💻
+
+Para usar RabbitMQ o una emulación de SQS (como **LocalStack**), solo necesitas ajustar los valores en tu `appsettings.json`.
+
+**RabbitMQ Local:**
+
+```json
+{
+  "QueueSettings": {
+    "RabbitMqHost": "localhost",
+    "RabbitMqUser": "guest",
+    "RabbitMqPassword": "guest"
+  }
+}
+```
+
+**AWS SQS con LocalStack:**
+Añade `ServiceURL` para redirigir el cliente de AWS a tu endpoint local.
+
+```json
+{
+  "AWS": {
+    "Region": "us-east-1",
+    "ServiceURL": "http://localhost:4566"
+  },
+  "QueueSettings": {
+    "SqsQueueName": "dev-local-sqs-queue"
+  }
+}
+```
+
+-----
+
+## Ejemplo de Implementación Completo con `IHostedService`
+
+Para escuchar las colas de forma continua y asíncrona, se utiliza un `BackgroundService` que implementa `IHostedService`. Este servicio se ejecuta en segundo plano durante toda la vida de la aplicación.
+
+### 1\. Servicio de Consumo (`NotificationWorkerService.cs`)
+
+Este servicio es el encargado de procesar los mensajes de ambas colas de forma simultánea. Inyecta los servicios concretos `AwsSqsService` y `RabbitMQConsumer` para evitar ambigüedades en la inyección de dependencias.
 
 ```csharp
-using Amazon.SQS;
-using Microsoft.Extensions.Configuration;
-using QueuePublisher.SQS;
+using Microsoft.Extensions.Hosting;
 using QueuePublisher.RabbitMQ;
-using RabbitMQ.Client;
+using QueuePublisher.SQS;
 
-class Program
+public class NotificationWorkerService : BackgroundService
 {
-    public static async Task Main()
-    {
-        var config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
-            .Build();
+    private readonly AwsSqsService _sqsConsumer;
+    private readonly RabbitMQConsumer _rabbitMqConsumer;
 
-        await TestSqs(config);
-        await TestRabbitMq(config);
+    public NotificationWorkerService(AwsSqsService sqsConsumer, RabbitMQConsumer rabbitMqConsumer)
+    {
+        _sqsConsumer = sqsConsumer;
+        _rabbitMqConsumer = rabbitMqConsumer;
     }
 
-    private static async Task TestSqs(IConfiguration config)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var sqsClient = new AmazonSQSClient(Amazon.RegionEndpoint.GetBySystemName(config["AWS:Region"]));
-        var sqsService = new AwsSqsService(sqsClient, config["SQSQueueName"]);
-
-        Console.WriteLine("📤 Enviando mensaje a SQS...");
-        await sqsService.SendMessageAsync("Hola desde SQS 🚀");
-
-        Console.WriteLine("📥 Recibiendo mensajes de SQS...");
-        await sqsService.ReceiveMessagesAsync(async message =>
+        // Tarea para procesar mensajes de SQS
+        Task sqsTask = _sqsConsumer.ReceiveMessagesAsync(async message =>
         {
-            Console.WriteLine($"➡️ SQS: {message}");
+            Console.WriteLine($"[SQS Worker] Mensaje recibido: {message}");
+            // Lógica para procesar el mensaje SQS (ej. enviar SMS)
             await Task.CompletedTask;
-        });
-    }
+        }, stoppingToken);
 
-    private static async Task TestRabbitMq(IConfiguration config)
-    {
-        var rabbit = config.GetSection("RabbitMQ");
-
-        var factory = new ConnectionFactory
+        // Tarea para procesar mensajes de RabbitMQ
+        Task rabbitMqTask = _rabbitMqConsumer.ReceiveMessagesAsync(async message =>
         {
-            HostName = rabbit["HostName"],
-            UserName = rabbit["UserName"],
-            Password = rabbit["Password"],
-            VirtualHost = rabbit["VirtualHost"]
-        };
-
-        using var connection = await factory.CreateConnectionAsync();
-
-        var producer = new RabbitMQProducer(connection, rabbit["QueueName"]);
-        var consumer = new RabbitMQConsumer(connection, rabbit["QueueName"]);
-
-        Console.WriteLine("📤 Enviando mensaje a RabbitMQ...");
-        await producer.SendMessageAsync("Hola desde RabbitMQ 🚀");
-
-        Console.WriteLine("📥 Escuchando mensajes de RabbitMQ...");
-        await consumer.ReceiveMessagesAsync(async message =>
-        {
-            Console.WriteLine($"➡️ RabbitMQ: {message}");
+            Console.WriteLine($"[RabbitMQ Worker] Mensaje recibido: {message}");
+            // Lógica para procesar el mensaje RabbitMQ (ej. enviar email)
             await Task.CompletedTask;
-        });
+        }, stoppingToken);
 
-        await Task.Delay(-1); // Mantener app viva
+        // Esperar a que ambas tareas finalicen (esto solo ocurre si se detiene el servicio)
+        await Task.WhenAll(sqsTask, rabbitMqTask);
     }
 }
 ```
 
----
+### 2\. Configuración en `Program.cs`
+
+Este es el código clave que configura la inyección de dependencias y asegura que tus consumidores estén siempre escuchando.
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using QueuePublisher.Configuration;
+using QueuePublisher.RabbitMQ;
+using QueuePublisher.SQS;
+using Amazon.SQS;
+using RabbitMQ.Client;
+using Microsoft.Extensions.Configuration;
+
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((hostContext, services) =>
+    {
+        // Mapear la sección "QueueSettings" a la clase QueueSettings
+        services.Configure<QueueSettings>(hostContext.Configuration.GetSection("QueueSettings"));
+        var queueSettings = hostContext.Configuration.GetSection("QueueSettings").Get<QueueSettings>();
+
+        // Configurar el cliente SQS
+        services.AddSingleton<IAmazonSQS>(sp =>
+        {
+            var config = new AmazonSQSConfig();
+            config.Region = Amazon.RegionEndpoint.GetBySystemName(hostContext.Configuration["AWS:Region"]);
+            // Opcional: Configurar el ServiceURL para LocalStack
+            if (!string.IsNullOrEmpty(hostContext.Configuration["AWS:ServiceURL"]))
+            {
+                config.ServiceURL = hostContext.Configuration["AWS:ServiceURL"];
+            }
+
+            return new AmazonSQSClient(config);
+        });
+
+        // Registrar el consumidor de SQS como Singleton
+        services.AddSingleton<AwsSqsService>(sp => new AwsSqsService(
+            sp.GetRequiredService<IAmazonSQS>(),
+            queueSettings.SqsQueueName
+        ));
+
+        // Configurar la conexión de RabbitMQ (conexión única)
+        services.AddSingleton<IConnection>(sp =>
+        {
+            var factory = new ConnectionFactory
+            {
+                HostName = queueSettings.RabbitMqHost,
+                UserName = queueSettings.RabbitMqUser,
+                Password = queueSettings.RabbitMqPassword,
+                VirtualHost = queueSettings.RabbitMqVirtualHost
+            };
+            return factory.CreateConnectionAsync().GetAwaiter().GetResult();
+        });
+
+        // Registrar el consumidor de RabbitMQ como Singleton
+        services.AddSingleton<RabbitMQConsumer>(sp => new RabbitMQConsumer(
+            sp.GetRequiredService<IConnection>(),
+            queueSettings.RabbitMqQueueName
+        ));
+
+        // Registrar el Hosted Service que consumirá los mensajes en bucle
+        services.AddHostedService<NotificationWorkerService>();
+    })
+    .Build();
+
+await host.RunAsync();
+```
+
+-----
 
 ## Interfaces
 
 ### Producer
+
 ```csharp
 public interface IQueueProducer
 {
@@ -164,55 +249,24 @@ public interface IQueueProducer
 ```
 
 ### Consumer
+
 ```csharp
 public interface IQueueConsumer
 {
-    Task ReceiveMessagesAsync(Func<string, Task> handleMessage);
+    Task ReceiveMessagesAsync(Func<string, Task> handleMessage, CancellationToken stoppingToken);
 }
 ```
 
----
-
-## RabbitMQ Ejemplo con CloudAMQP
-
-```csharp
-var factory = new ConnectionFactory
-{
-    HostName = "your-host",
-    UserName = "your-user",
-    Password = "your-pass",
-    VirtualHost = "your-vhost"
-};
-using var connection = await factory.CreateConnectionAsync();
-var producer = new RabbitMQProducer(connection, "mi-cola-rabbit");
-await producer.SendMessageAsync("Mensaje de prueba 🚀");
-```
-
----
-
-## AWS SQS Ejemplo
-
-```csharp
-var sqsClient = new AmazonSQSClient(Amazon.RegionEndpoint.USEast1);
-var sqsService = new AwsSqsService(sqsClient, "notification-queue-dev");
-
-await sqsService.SendMessageAsync("Mensaje de prueba en SQS 🚀");
-await sqsService.ReceiveMessagesAsync(async message =>
-{
-    Console.WriteLine($"➡️ SQS: {message}");
-});
-```
-
----
+-----
 
 ## Roadmap
 
-- [ ] Soporte para **Azure Service Bus**  
-- [ ] Manejo avanzado de **Dead Letter Queues (DLQ)**  
-- [ ] Integración con **Polly** para resiliencia  
-- [ ] Publicación como **NuGet Package**
+  * [ ] Soporte para **Azure Service Bus**
+  * [ ] Manejo avanzado de **Dead Letter Queues (DLQ)**
+  * [ ] Integración con **Polly** para resiliencia
+  * [ ] Publicación como **NuGet Package**
 
----
+-----
 
 ## 📝 Licencia
 
