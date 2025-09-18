@@ -1,25 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "/Volumes/Content/Proyects/dotNet/QueuePublisher/QueuePublisher.csproj": {}
+    "/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/QueuePublisher.csproj": {}
   },
   "projects": {
-    "/Volumes/Content/Proyects/dotNet/QueuePublisher/QueuePublisher.csproj": {
-      "version": "1.0.1",
+    "/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/QueuePublisher.csproj": {
+      "version": "1.1.0",
       "restore": {
-        "projectUniqueName": "/Volumes/Content/Proyects/dotNet/QueuePublisher/QueuePublisher.csproj",
+        "projectUniqueName": "/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/QueuePublisher.csproj",
         "projectName": "QueuePublisher",
-        "projectPath": "/Volumes/Content/Proyects/dotNet/QueuePublisher/QueuePublisher.csproj",
-        "packagesPath": "/Users/jhoanhurtado/.nuget/packages/",
-        "outputPath": "/Volumes/Content/Proyects/dotNet/QueuePublisher/obj/",
+        "projectPath": "/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/QueuePublisher.csproj",
+        "packagesPath": "/home/jhoan/.nuget/packages/",
+        "outputPath": "/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/jhoanhurtado/.nuget/NuGet/NuGet.Config"
+          "/home/jhoan/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -68,12 +69,22 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[8.0.20, 8.0.20]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.20, 8.0.20]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.101/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/9.0.110/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

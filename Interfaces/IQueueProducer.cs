@@ -9,8 +9,9 @@ namespace QueuePublisher.Interfaces
         /// <summary>
         /// Publica un mensaje en la cola.
         /// </summary>
+        /// <param name="queueName">Nombre de la cola de destino.</param>
         /// <param name="message">Contenido del mensaje a enviar (generalmente en formato JSON o texto plano).</param>
         /// <returns>Tarea asincrónica que representa la operación de envío.</returns>
-        Task SendMessageAsync(string message);
+        Task SendMessageAsync(string queueName, string message);
     }
 }

@@ -1,6 +1,7 @@
 using QueuePublisher.Interfaces;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Collections.Concurrent;
 using System.Text;
 
 namespace QueuePublisher.RabbitMQ
@@ -11,45 +12,44 @@ namespace QueuePublisher.RabbitMQ
     /// </summary>
     public class RabbitMQConsumer : IQueueConsumer, IDisposable
     {
-        private readonly IChannel _channel;
-        private readonly string _queueName;
+        private readonly IConnection _connection;
+        private readonly ConcurrentDictionary<string, IChannel> _channels = new();
 
         /// <summary>
         /// Inicializa una nueva instancia del consumidor RabbitMQ.
         /// </summary>
         /// <param name="connection">Conexión activa hacia RabbitMQ.</param>
-        /// <param name="queueName">Nombre de la cola de la que se recibirán mensajes.</param>
-        public RabbitMQConsumer(IConnection connection, string queueName)
+        public RabbitMQConsumer(IConnection connection)
         {
-            if (connection == null) throw new ArgumentNullException(nameof(connection));
-            if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentException("Queue name cannot be null or empty.", nameof(queueName));
-
-            // Crear canal usando la nueva API async
-            _channel = connection.CreateChannelAsync().GetAwaiter().GetResult();
-            _queueName = queueName;
-
-            Console.WriteLine($"[RabbitMQConsumer] Inicializado para la cola: {_queueName}");
+            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            Console.WriteLine($"[RabbitMQConsumer] Inicializado.");
         }
 
         /// <summary>
-        /// Inicia la recepción de mensajes desde RabbitMQ en un loop persistente.
+        /// Inicia la recepción de mensajes desde una cola específica de RabbitMQ.
+        /// Este método puede ser llamado múltiples veces para consumir de distintas colas simultáneamente.
         /// </summary>
+        /// <param name="queueName">Nombre de la cola de la que se recibirán mensajes.</param>
         /// <param name="handleMessage">Función async encargada de procesar cada mensaje recibido.</param>
         /// <param name="stoppingToken">Token de cancelación para detener el consumo.</param>
-        public async Task ReceiveMessagesAsync(Func<string, Task> handleMessage, CancellationToken stoppingToken)
+        public async Task ReceiveMessagesAsync(string queueName, Func<string, Task> handleMessage, CancellationToken stoppingToken)
         {
             if (handleMessage == null) throw new ArgumentNullException(nameof(handleMessage));
+            if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentException("Queue name cannot be null or empty.", nameof(queueName));
+
+            var channel = await _connection.CreateChannelAsync();
+            _channels.TryAdd(queueName, channel);
 
             // Asegurar que la cola existe
-            await _channel.QueueDeclareAsync(
-                queue: _queueName,
+            await channel.QueueDeclareAsync(
+                queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
                 arguments: null
             );
 
-            var consumer = new AsyncEventingBasicConsumer(_channel);
+            var consumer = new AsyncEventingBasicConsumer(channel);
 
             // Registrar callback async
             consumer.ReceivedAsync += async (model, ea) =>
@@ -62,7 +62,7 @@ namespace QueuePublisher.RabbitMQ
                     await handleMessage(message);
 
                     // Confirmar que el mensaje fue procesado
-                    await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+                    await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
                     Console.WriteLine($"[RabbitMQConsumer] Mensaje ACK enviado (DeliveryTag={ea.DeliveryTag})");
                 }
                 catch (Exception ex)
@@ -72,36 +72,30 @@ namespace QueuePublisher.RabbitMQ
             };
 
             // Iniciar consumo
-            var consumerTag = await _channel.BasicConsumeAsync(
-                queue: _queueName,
+            var consumerTag = await channel.BasicConsumeAsync(
+                queue: queueName,
                 autoAck: false,
                 consumer: consumer
             );
 
-            Console.WriteLine($"[RabbitMQConsumer] Escuchando en la cola '{_queueName}' con tag {consumerTag}");
+            Console.WriteLine($"[RabbitMQConsumer] Escuchando en la cola '{queueName}' con tag {consumerTag}");
 
-            // Mantener vivo hasta que se cancele
-            try
+            // Registrar un callback para cuando se solicite la cancelación.
+            // Esto asegura que la suscripción al consumidor se cancele limpiamente.
+            stoppingToken.Register(async () =>
             {
-                while (!stoppingToken.IsCancellationRequested)
-                {
-                    await Task.Delay(1000, stoppingToken);
-                }
-            }
-            catch (TaskCanceledException)
-            {
-                Console.WriteLine("[RabbitMQConsumer] Cancelación recibida, cerrando consumidor...");
-            }
-
-            // Cancelar suscripción y cerrar
-            await _channel.BasicCancelAsync(consumerTag);
-            Console.WriteLine($"[RabbitMQConsumer] Suscripción cancelada en la cola '{_queueName}'");
+                Console.WriteLine($"[RabbitMQConsumer] Cancelación recibida, cerrando consumidor para la cola '{queueName}'...");
+                if (channel.IsOpen) await channel.BasicCancelAsync(consumerTag);
+            });
         }
 
         public void Dispose()
         {
-            _channel?.Dispose();
-            Console.WriteLine("[RabbitMQConsumer] Canal cerrado y recursos liberados.");
+            foreach (var channel in _channels.Values)
+            {
+                channel?.Dispose();
+            }
+            Console.WriteLine($"[RabbitMQConsumer] {_channels.Count} canales cerrados y recursos liberados.");
         }
     }
 }

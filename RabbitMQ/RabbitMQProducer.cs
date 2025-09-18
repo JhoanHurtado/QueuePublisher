@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using QueuePublisher.Interfaces;
 using RabbitMQ.Client;
 
@@ -43,31 +42,31 @@ namespace QueuePublisher.RabbitMQ
     public class RabbitMQProducer : IQueueProducer
     {
         private readonly IConnection _connection;
-        private readonly string _queueName;
 
         /// <summary>
         /// Inicializa una nueva instancia del productor RabbitMQ.
         /// </summary>
         /// <param name="connection">Conexión activa a RabbitMQ.</param>
-        /// <param name="queueName">Nombre de la cola donde se publicarán los mensajes.</param>
-        public RabbitMQProducer(IConnection connection, string queueName)
+        public RabbitMQProducer(IConnection connection)
         {
             _connection = connection;
-            _queueName = queueName;
         }
 
         /// <summary>
         /// Envía un mensaje a la cola de RabbitMQ configurada.
         /// </summary>
+        /// <param name="queueName">Nombre de la cola donde se publicará el mensaje.</param>
         /// <param name="message">Mensaje en formato <see cref="string"/> a publicar.</param>
-        public async Task SendMessageAsync(string message)
+        public async Task SendMessageAsync(string queueName, string message)
         {
+            if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentException("Queue name cannot be null or empty.", nameof(queueName));
+
             // Crear canal async
             await using var channel = await _connection.CreateChannelAsync();
 
             // Declarar la cola (aseguramos que existe antes de publicar)
             await channel.QueueDeclareAsync(
-                queue: _queueName,
+                queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
@@ -86,7 +85,7 @@ namespace QueuePublisher.RabbitMQ
             // Publicar el mensaje
             await channel.BasicPublishAsync(
                 exchange: "",
-                routingKey: _queueName,
+                routingKey: queueName,
                 mandatory: false,
                 basicProperties: properties,
                 body: body

@@ -2,15 +2,15 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>QueuePublisher</id>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <authors>Jhoan Hurtado</authors>
     <license type="expression">MIT</license>
     <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
     <readme>README.md</readme>
     <projectUrl>https://github.com/JhoanHurtado/QueuePublisher</projectUrl>
     <description>Librería en .NET 8 para publicar y consumir mensajes en AWS SQS y RabbitMQ mediante interfaces unificadas (IQueueProducer, IQueueConsumer).</description>
-    <releaseNotes>Versión inicial con soporte para RabbitMQ y AWS SQS.</releaseNotes>
-    <tags>dotnet rabbitmq aws sqs messaging queues</tags>
+    <releaseNotes>Se añade soporte para consumir de múltiples colas con una sola instancia de RabbitMQConsumer. Se mejora el consumo asíncrono en SQS y RabbitMQ para mayor eficiencia y robustez en servicios de larga duración (IHostedService). La documentación ha sido actualizada con ejemplos de inyección de dependencias.</releaseNotes>
+    <tags>dotnet csharp rabbitmq aws sqs messaging queues producer consumer</tags>
     <repository type="git" url="https://github.com/JhoanHurtado/QueuePublisher.git" commit="5a6080336c63397516d4cbcb6a4e9cbc140eda1a" />
     <dependencies>
       <group targetFramework="net8.0">
@@ -21,7 +21,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/bin/Debug/net8.0/QueuePublisher.dll" target="lib/net8.0/QueuePublisher.dll" />
+    <file src="/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/bin/Release/net8.0/QueuePublisher.dll" target="lib/net8.0/QueuePublisher.dll" />
     <file src="/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/README.md" target="/README.md" />
   </files>
 </package>

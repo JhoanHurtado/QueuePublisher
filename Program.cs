@@ -20,18 +20,18 @@ namespace QueuePublisher
         private static async Task TestSqs()
         {
             AmazonSQSClient sqsClient = new AmazonSQSClient(Amazon.RegionEndpoint.USEast1);
-            string queueName = "notification-queue-dev";
+            string queueNameSqs = "notification-queue-dev";
 
             // Usar la librería AwsSqsService
-            AwsSqsService sqsService = new AwsSqsService(sqsClient, queueName);
+            AwsSqsService sqsService = new AwsSqsService(sqsClient);
 
             // Enviar mensaje
             Console.WriteLine("📤 Enviando mensaje a SQS...");
-            await sqsService.SendMessageAsync("Hola desde SQS 🚀");
+            await sqsService.SendMessageAsync(queueNameSqs, "Hola desde SQS 🚀");
 
             // Recibir mensajes
             Console.WriteLine("📥 Recibiendo mensajes de SQS...");
-            /*await sqsService.ReceiveMessagesAsync(async message =>
+            /*await sqsService.ReceiveMessagesAsync(queueNameSqs, async message =>
             {
                 Console.WriteLine($"➡️ SQS: {message}");
                 await Task.CompletedTask;
@@ -51,26 +51,43 @@ namespace QueuePublisher
 
             using var connection = await factory.CreateConnectionAsync();
 
-            string queueName = "mi-cola-rabbit";
+            string queueNameA = "cola_A";
+            string queueNameB = "cola_B";
 
             // Usar la librería RabbitMQProducer y RabbitMQConsumer
-            RabbitMQProducer producer = new RabbitMQProducer(connection, queueName);
-            RabbitMQConsumer consumer = new RabbitMQConsumer(connection, queueName);
+            // Una sola instancia para manejar múltiples colas
+            RabbitMQProducer producer = new RabbitMQProducer(connection);
+            using RabbitMQConsumer consumer = new RabbitMQConsumer(connection);
 
-            // Publicar mensaje
-            Console.WriteLine("📤 Enviando mensaje a RabbitMQ...");
-            await producer.SendMessageAsync("Hola desde RabbitMQ 🚀");
+            // Publicar mensajes en diferentes colas
+            Console.WriteLine($"📤 Enviando mensaje a la cola '{queueNameA}'...");
+            await producer.SendMessageAsync(queueNameA, $"Hola desde RabbitMQ en '{queueNameA}' 🚀");
+
+            Console.WriteLine($"📤 Enviando mensaje a la cola '{queueNameB}'...");
+            await producer.SendMessageAsync(queueNameB, $"Hola desde RabbitMQ en '{queueNameB}' 🚀");
 
             // Consumir mensajes
-            Console.WriteLine("📥 Escuchando mensajes de RabbitMQ...");
-            /*await consumer.ReceiveMessagesAsync(async message =>
-            {
-                Console.WriteLine($"➡️ RabbitMQ: {message}");
-                await Task.CompletedTask;
-            });*/
+            Console.WriteLine("📥 Escuchando mensajes de RabbitMQ en paralelo...");
 
-            Console.WriteLine("🔄 RabbitMQ consumer activo (presiona Ctrl+C para detener)...");
-            await Task.Delay(-1); // Mantener app viva
+            // Crear un token de cancelación para detener los consumidores
+            using var cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (sender, e) => { e.Cancel = true; cts.Cancel(); };
+
+            // Iniciar consumidores para cada cola
+            Task consumerA = consumer.ReceiveMessagesAsync(queueNameA, async message =>
+            {
+                Console.WriteLine($"➡️ Mensaje de '{queueNameA}': {message}");
+                await Task.CompletedTask;
+            }, cts.Token);
+
+            Task consumerB = consumer.ReceiveMessagesAsync(queueNameB, async message =>
+            {
+                Console.WriteLine($"➡️ Mensaje de '{queueNameB}': {message}");
+                await Task.CompletedTask;
+            }, cts.Token);
+
+            Console.WriteLine("🔄 Consumidores de RabbitMQ activos (presiona Ctrl+C para detener)...");
+            await Task.WhenAll(consumerA, consumerB);
         }
     }
 }

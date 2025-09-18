@@ -11,27 +11,26 @@ namespace QueuePublisher.SQS
     public class AwsSqsService : IQueueConsumer, IQueueProducer
     {
         private readonly IAmazonSQS _sqsClient;
-        private readonly string _queueName;
 
         /// <summary>
         /// Inicializa una nueva instancia de <see cref="AwsSqsService"/>.
         /// </summary>
         /// <param name="sqsClient">Cliente de Amazon SQS.</param>
-        /// <param name="queueName">Nombre de la cola.</param>
-        public AwsSqsService(IAmazonSQS sqsClient, string queueName)
+        public AwsSqsService(IAmazonSQS sqsClient)
         {
             _sqsClient = sqsClient;
-            _queueName = queueName;
-            Console.WriteLine($"[AwsSqsService] Inicializado para la cola: {_queueName}");
+            Console.WriteLine($"[AwsSqsService] Inicializado.");
         }
 
         /// <summary>
         /// Envía un mensaje a la cola SQS configurada.
         /// </summary>
+        /// <param name="queueName">Nombre de la cola de destino.</param>
         /// <param name="message">Contenido del mensaje en formato texto.</param>
-        public async Task SendMessageAsync(string message)
+        public async Task SendMessageAsync(string queueName, string message)
         {
-            var queueUrl = (await _sqsClient.GetQueueUrlAsync(_queueName)).QueueUrl;
+            if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentException("Queue name cannot be null or empty.", nameof(queueName));
+            var queueUrl = (await _sqsClient.GetQueueUrlAsync(queueName)).QueueUrl;
 
             var sendRequest = new SendMessageRequest
             {
@@ -40,19 +39,21 @@ namespace QueuePublisher.SQS
             };
 
             var response = await _sqsClient.SendMessageAsync(sendRequest);
-            Console.WriteLine($"[AwsSqsService] Mensaje enviado a {_queueName}, MessageId={response.MessageId}");
+            Console.WriteLine($"[AwsSqsService] Mensaje enviado a {queueName}, MessageId={response.MessageId}");
         }
 
         /// <summary>
         /// Recibe mensajes en un bucle persistente desde la cola SQS y ejecuta el manejador.
         /// </summary>
+        /// <param name="queueName">Nombre de la cola de la que se consumirán los mensajes.</param>
         /// <param name="handleMessage">Función async encargada de procesar el mensaje.</param>
         /// <param name="stoppingToken">Token de cancelación para detener el loop.</param>
-        public async Task ReceiveMessagesAsync(Func<string, Task> handleMessage, CancellationToken stoppingToken)
+        public async Task ReceiveMessagesAsync(string queueName, Func<string, Task> handleMessage, CancellationToken stoppingToken)
         {
-            var queueUrl = (await _sqsClient.GetQueueUrlAsync(_queueName)).QueueUrl;
+            if (string.IsNullOrWhiteSpace(queueName)) throw new ArgumentException("Queue name cannot be null or empty.", nameof(queueName));
+            var queueUrl = (await _sqsClient.GetQueueUrlAsync(queueName)).QueueUrl;
 
-            Console.WriteLine($"[SQS] Escuchando cola {_queueName}...");
+            Console.WriteLine($"[SQS] Escuchando cola {queueName}...");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -60,27 +61,35 @@ namespace QueuePublisher.SQS
                 {
                     QueueUrl = queueUrl,
                     MaxNumberOfMessages = 10,
-                    WaitTimeSeconds = 10 // long polling
+                    WaitTimeSeconds = 10
                 }, stoppingToken);
 
-                foreach (var msg in response.Messages)
+                if (response?.Messages != null)
                 {
-                    try
+                    foreach (var msg in response.Messages)
                     {
-                        Console.WriteLine($"[SQS] Mensaje recibido: {msg.Body}");
-
-                        await handleMessage(msg.Body);
-
-                        await _sqsClient.DeleteMessageAsync(new DeleteMessageRequest
+                        try
                         {
-                            QueueUrl = queueUrl,
-                            ReceiptHandle = msg.ReceiptHandle
-                        }, stoppingToken);
+                            Console.WriteLine($"[SQS] Mensaje recibido: {msg.Body}");
+
+                            await handleMessage(msg.Body);
+
+                            await _sqsClient.DeleteMessageAsync(new DeleteMessageRequest
+                            {
+                                QueueUrl = queueUrl,
+                                ReceiptHandle = msg.ReceiptHandle
+                            }, stoppingToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log the error but continue processing other messages
+                            Console.WriteLine($"[SQS] Error procesando mensaje: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[SQS] Error procesando mensaje: {ex.Message}");
-                    }
+                }
+                else
+                {
+                    Console.WriteLine("[SQS] La respuesta de ReceiveMessageAsync fue nula o no contenía mensajes. Posible cancelación.");
                 }
             }
         }

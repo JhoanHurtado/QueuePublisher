@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>QueuePublisher</id>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <authors>Jhoan Hurtado</authors>
     <license type="expression">MIT</license>
     <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
@@ -21,7 +21,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/bin/Debug/net8.0/QueuePublisher.dll" target="lib/net8.0/QueuePublisher.dll" />
+    <file src="/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/bin/Release/net8.0/QueuePublisher.dll" target="lib/net8.0/QueuePublisher.dll" />
     <file src="/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/README.md" target="/README.md" />
   </files>
 </package>

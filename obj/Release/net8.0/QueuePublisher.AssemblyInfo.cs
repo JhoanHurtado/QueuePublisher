@@ -14,11 +14,11 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("Librería en .NET 8 para publicar y consumir mensajes en AWS SQS y RabbitMQ median" +
     "te interfaces unificadas (IQueueProducer, IQueueConsumer)."))]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.1+6ba325b3872add9b7af4090fce1d85ff6418705d")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.1.0+5a6080336c63397516d4cbcb6a4e9cbc140eda1a")]
 [assembly: System.Reflection.AssemblyProductAttribute("QueuePublisher")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QueuePublisher")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.0.1.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.1.0.0")]
 [assembly: System.Reflection.AssemblyMetadataAttribute("RepositoryUrl", "https://github.com/JhoanHurtado/QueuePublisher.git")]
 [assembly: System.Resources.NeutralResourcesLanguageAttribute("es")]
 

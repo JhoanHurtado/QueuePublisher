@@ -41,8 +41,8 @@ namespace QueuePublisher.RabbitMQ
         public string VirtualHost { get; set; } = "/";
 
         /// <summary>
-        /// Nombre de la cola por defecto donde se publican/leen los mensajes.
+        /// Un diccionario de colas donde la llave es un nombre lógico y el valor es el nombre real de la cola en RabbitMQ.
         /// </summary>
-        public string QueueName { get; set; } = "default-queue";
+        public Dictionary<string, string> Queues { get; set; } = new();
     }
 }

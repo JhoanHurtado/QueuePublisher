@@ -14,6 +14,7 @@ Aquí tienes el archivo `README.md` completo y listo para copiar y pegar. He con
   * Implementación para **AWS SQS**.
   * Implementación para **RabbitMQ** (compatible con CloudAMQP y servidores locales).
   * Mensajes persistentes.
+  * **Soporte para múltiples colas** con una única instancia de productor/consumidor.
   * Configuración flexible vía `appsettings.json`.
   * Uso de **`IHostedService`** para consumo de mensajes en segundo plano, ideal para servicios de larga duración.
   * Soporte para **`long polling`** en SQS, optimizando el consumo y reduciendo costos.
@@ -125,41 +126,52 @@ Para escuchar las colas de forma continua y asíncrona, se utiliza un `Backgroun
 
 ### 1\. Servicio de Consumo (`NotificationWorkerService.cs`)
 
-Este servicio es el encargado de procesar los mensajes de ambas colas de forma simultánea. Inyecta los servicios concretos `AwsSqsService` y `RabbitMQConsumer` para evitar ambigüedades en la inyección de dependencias.
+Este servicio es el encargado de procesar los mensajes de las colas configuradas en `appsettings.json`. Inyecta los consumidores y la configuración para saber de qué colas escuchar.
 
 ```csharp
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using QueuePublisher.Configuration;
 using QueuePublisher.RabbitMQ;
 using QueuePublisher.SQS;
 
 public class NotificationWorkerService : BackgroundService
 {
     private readonly AwsSqsService _sqsConsumer;
-    private readonly RabbitMQConsumer _rabbitMqConsumer;
+    private readonly RabbitMQConsumer _rabbitConsumer;
+    private readonly QueueSettings _queueSettings;
 
-    public NotificationWorkerService(AwsSqsService sqsConsumer, RabbitMQConsumer rabbitMqConsumer)
+    public NotificationWorkerService(
+        AwsSqsService sqsConsumer,
+        RabbitMQConsumer rabbitConsumer,
+        IOptions<QueueSettings> queueSettings)
     {
         _sqsConsumer = sqsConsumer;
-        _rabbitMqConsumer = rabbitMqConsumer;
+        _rabbitConsumer = rabbitConsumer;
+        _queueSettings = queueSettings.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Tarea para procesar mensajes de SQS
-        Task sqsTask = _sqsConsumer.ReceiveMessagesAsync(async message =>
-        {
-            Console.WriteLine($"[SQS Worker] Mensaje recibido: {message}");
-            // Lógica para procesar el mensaje SQS (ej. enviar SMS)
-            await Task.CompletedTask;
-        }, stoppingToken);
+        Task sqsTask = _sqsConsumer.ReceiveMessagesAsync(
+            _queueSettings.SqsQueueName, // Especifica la cola
+            async message =>
+            {
+                Console.WriteLine($"[SQS Worker] Mensaje de '{_queueSettings.SqsQueueName}': {message}");
+                await Task.CompletedTask; // Lógica de procesamiento
+            },
+            stoppingToken);
 
         // Tarea para procesar mensajes de RabbitMQ
-        Task rabbitMqTask = _rabbitMqConsumer.ReceiveMessagesAsync(async message =>
-        {
-            Console.WriteLine($"[RabbitMQ Worker] Mensaje recibido: {message}");
-            // Lógica para procesar el mensaje RabbitMQ (ej. enviar email)
-            await Task.CompletedTask;
-        }, stoppingToken);
+        Task rabbitMqTask = _rabbitConsumer.ReceiveMessagesAsync(
+            _queueSettings.RabbitMqQueueName, // Especifica la cola
+            async message =>
+            {
+                Console.WriteLine($"[RabbitMQ Worker] Mensaje de '{_queueSettings.RabbitMqQueueName}': {message}");
+                await Task.CompletedTask; // Lógica de procesamiento
+            },
+            stoppingToken);
 
         // Esperar a que ambas tareas finalicen (esto solo ocurre si se detiene el servicio)
         await Task.WhenAll(sqsTask, rabbitMqTask);

@@ -11,3 +11,16 @@
 /Volumes/Content/Proyects/dotNet/QueuePublisher/obj/Debug/net8.0/refint/QueuePublisher.dll
 /Volumes/Content/Proyects/dotNet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.pdb
 /Volumes/Content/Proyects/dotNet/QueuePublisher/obj/Debug/net8.0/ref/QueuePublisher.dll
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/bin/Debug/net8.0/QueuePublisher.deps.json
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/bin/Debug/net8.0/QueuePublisher.dll
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/bin/Debug/net8.0/QueuePublisher.pdb
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.csproj.AssemblyReference.cache
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.GeneratedMSBuildEditorConfig.editorconfig
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.AssemblyInfoInputs.cache
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.AssemblyInfo.cs
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.csproj.CoreCompileInputs.cache
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.sourcelink.json
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.dll
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/refint/QueuePublisher.dll
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/QueuePublisher.pdb
+/home/jhoan/Documents/Proyects/Dotnet/QueuePublisher/obj/Debug/net8.0/ref/QueuePublisher.dll
